@@ -7,7 +7,7 @@
 - 识别岗位描述、制度文件、推广材料中的合规风险
 - 基于五大合规逻辑模型 + 黑名单关键词双重校验
 - 输出结构化审查报告，每条违规附带原文证据和修改建议
-- 支持直接文本输入和文件（docx/pdf/txt）解析
+- 支持直接文本输入和文件（docx/pdf/txt/pptx/xlsx/csv）解析
 
 ## 适用场景
 
@@ -16,7 +16,7 @@
 | 岗位 JD 审查 | "审查这个医药代表的岗位描述是否合规" |
 | 制度文件审查 | "检查这份管理办法的合规性" |
 | 推广材料审查 | "审查这份学术推广方案" |
-| 批量文件审查 | "审查这个目录下所有 docx 文件" |
+| 批量文件审查 | "审查这个目录下所有 docx/xlsx 文件" |
 
 ## 触发关键词
 
@@ -72,7 +72,7 @@ pharma-compliance/
 │   ├── logic-model.md    # 合规逻辑模型详解
 │   └── examples.md       # 审查示例
 └── scripts/
-    ├── extract_file.py   # 文件文本提取（docx/pptx/pdf/txt/doc）
+    ├── extract_file.py   # 文件文本提取（docx/pptx/pdf/txt/doc/xlsx/xls/csv/tsv）
     ├── generate_report.py # HTML 报告生成
     └── requirements.txt  # Python 依赖
 ```

@@ -1,7 +1,7 @@
 ---
 name: pharma-compliance
 description: >-
-  医药合规审查技能 — 对文本或文件（docx/pdf/txt）进行医药行业合规性审查。
+  医药合规审查技能 — 对文本或文件（docx/pdf/txt/pptx/xlsx/csv）进行医药行业合规性审查。
   识别岗位描述、制度文件、推广材料中的身份偏移、处方干预、利益交换、非学术推广、
   科学严谨性等合规风险，输出结构化审查报告并给出原文证据和修改建议。
   当用户要求审查医药相关文本、岗位JD、制度文件、推广材料的合规性时触发。
@@ -101,7 +101,7 @@ description: >-
 确定用户提供的内容类型：
 
 - 直接粘贴的文本
-- 单个文件（docx/pdf/txt/pptx/ppt）— 需要先提取文本内容
+- 单个文件（docx/pdf/txt/pptx/ppt/xlsx/xls/csv/tsv）— 需要先提取文本内容
 - 多个文件 — 逐个提取文本后合并审查
 - 目录路径 — 递归扫描所有支持格式的文件
 
@@ -109,6 +109,8 @@ description: >-
 - `.docx` / `.doc` — Word 文档，提取段落和表格文本
 - `.pdf` — PDF 文档，提取可选择文本
 - `.pptx` / `.ppt` — PowerPoint 演示文稿，提取每页幻灯片的标题、正文、备注和表格文本
+- `.xlsx` / `.xlsm` / `.xltx` / `.xltm` / `.xls` — Excel 工作簿，按工作表提取每行单元格文本
+- `.csv` / `.tsv` — 表格文本文件，按行提取单元格文本
 - `.txt` / `.md` — 纯文本文件，直接读取
 
 如果是文件，先提取全部文本内容（包括表格中的文本），然后按以下流程审查。
@@ -234,8 +236,9 @@ description: >-
 1. **docx/doc 文件** — 提取所有段落文本和表格内容
 2. **pdf 文件** — 提取可选择文本；扫描件需 OCR
 3. **pptx/ppt 文件** — 逐页提取：幻灯片标题、文本框内容、表格文本、备注栏内容。每页视为一个独立内容块
-4. **txt/md 文件** — 直接读取
-5. **目录** — 递归扫描所有支持格式的文件
+4. **xlsx/xls/csv/tsv 文件** — 按工作表或表格行提取单元格文本，保留工作表名和行号
+5. **txt/md 文件** — 直接读取
+6. **目录** — 递归扫描所有支持格式的文件
 
 ### 多文件处理策略
 
@@ -298,7 +301,7 @@ PPT 中的图片无法提取文本，如果关键信息在图片中，标注为"
 
 ### extract_file.py
 
-通用文件文本提取工具，支持 docx、pptx、pdf、txt、doc 格式。
+通用文件文本提取工具，支持 docx、pptx、pdf、txt、doc、xlsx、xls、csv、tsv 格式。
 
 ```bash
 # 安装依赖
@@ -308,7 +311,7 @@ pip install -r scripts/requirements.txt
 python scripts/extract_file.py document.docx
 
 # 提取多个文件
-python scripts/extract_file.py file1.docx file2.pptx file3.pdf
+python scripts/extract_file.py file1.docx file2.pptx file3.pdf file4.xlsx
 
 # 扫描目录
 python scripts/extract_file.py --dir /path/to/folder
@@ -324,6 +327,18 @@ python scripts/extract_file.py --dir /path/to/folder
     "content": "提取的全部文本内容",
     "pages": [{"page": 1, "title": "...", "content": "..."}],
     "format": ".docx"
+  }
+]
+```
+
+Excel 文件的 `pages` 字段用于保存工作表内容，结构为：
+
+```json
+[
+  {
+    "sheet": 1,
+    "title": "工作表名称",
+    "content": "[工作表1] 工作表名称\n第1行: ..."
   }
 ]
 ```

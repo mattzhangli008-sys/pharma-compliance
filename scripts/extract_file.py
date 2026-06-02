@@ -2,7 +2,7 @@
 """
 文件文本提取工具
 
-支持 docx、doc、pptx、pdf、txt 格式
+支持 docx、doc、pptx、pdf、txt、xlsx、xls、csv、tsv 格式
 输出 JSON 格式的结构化文本内容
 
 用法：
@@ -14,12 +14,13 @@
   [{"title": "文件名", "source": "文件路径", "content": "提取的文本", "pages": [...]}]
 
 依赖安装：
-  pip install python-docx python-pptx PyPDF2
+  pip install python-docx python-pptx PyPDF2 openpyxl xlrd
 """
 
 import sys
 import os
 import json
+import csv
 
 
 def extract_docx(filepath):
@@ -121,6 +122,86 @@ def extract_txt(filepath):
         return f.read()
 
 
+def stringify_cell(value):
+    """将表格单元格值转为适合审查的文本"""
+    if value is None:
+        return ''
+    text = str(value).strip()
+    return text
+
+
+def extract_xlsx(filepath):
+    """提取 xlsx/xlsm/xltx/xltm 文件内容（按工作表组织）"""
+    from openpyxl import load_workbook
+
+    workbook = load_workbook(filepath, read_only=True, data_only=True)
+    sheets = []
+
+    for sheet_index, worksheet in enumerate(workbook.worksheets, 1):
+        rows = []
+        for row_number, row in enumerate(worksheet.iter_rows(values_only=True), 1):
+            values = [stringify_cell(cell) for cell in row]
+            while values and not values[-1]:
+                values.pop()
+            if any(values):
+                rows.append(f'第{row_number}行: ' + ' | '.join(values))
+
+        if rows:
+            content = f'[工作表{sheet_index}] {worksheet.title}\n' + '\n'.join(rows)
+            sheets.append({'sheet': sheet_index, 'title': worksheet.title, 'content': content})
+
+    full_text = '\n\n'.join(sheet['content'] for sheet in sheets)
+    return full_text, sheets
+
+
+def extract_xls(filepath):
+    """提取 xls 文件内容（按工作表组织）"""
+    import xlrd
+
+    workbook = xlrd.open_workbook(filepath)
+    sheets = []
+
+    for sheet_index, worksheet in enumerate(workbook.sheets(), 1):
+        rows = []
+        for row_index in range(worksheet.nrows):
+            values = [stringify_cell(worksheet.cell_value(row_index, col_index))
+                      for col_index in range(worksheet.ncols)]
+            while values and not values[-1]:
+                values.pop()
+            if any(values):
+                rows.append(f'第{row_index + 1}行: ' + ' | '.join(values))
+
+        if rows:
+            content = f'[工作表{sheet_index}] {worksheet.name}\n' + '\n'.join(rows)
+            sheets.append({'sheet': sheet_index, 'title': worksheet.name, 'content': content})
+
+    full_text = '\n\n'.join(sheet['content'] for sheet in sheets)
+    return full_text, sheets
+
+
+def extract_delimited(filepath, delimiter):
+    """提取 csv/tsv 文件内容"""
+    encodings = ('utf-8-sig', 'utf-8', 'gb18030')
+    last_error = None
+
+    for encoding in encodings:
+        try:
+            rows = []
+            with open(filepath, 'r', encoding=encoding, newline='') as f:
+                reader = csv.reader(f, delimiter=delimiter)
+                for row_number, row in enumerate(reader, 1):
+                    values = [stringify_cell(cell) for cell in row]
+                    while values and not values[-1]:
+                        values.pop()
+                    if any(values):
+                        rows.append(f'第{row_number}行: ' + ' | '.join(values))
+            return '\n'.join(rows)
+        except UnicodeDecodeError as e:
+            last_error = e
+
+    raise last_error
+
+
 def extract_file(filepath):
     """根据文件类型提取内容"""
     ext = os.path.splitext(filepath)[1].lower()
@@ -147,6 +228,18 @@ def extract_file(filepath):
             result['pages'] = pages
         elif ext in ('.txt', '.md'):
             result['content'] = extract_txt(filepath)
+        elif ext in ('.xlsx', '.xlsm', '.xltx', '.xltm'):
+            content, sheets = extract_xlsx(filepath)
+            result['content'] = content
+            result['pages'] = sheets
+        elif ext in ('.xls',):
+            content, sheets = extract_xls(filepath)
+            result['content'] = content
+            result['pages'] = sheets
+        elif ext in ('.csv',):
+            result['content'] = extract_delimited(filepath, ',')
+        elif ext in ('.tsv',):
+            result['content'] = extract_delimited(filepath, '\t')
         elif ext in ('.doc',):
             # .doc 格式尝试用 antiword 或 textutil (macOS)
             try:
@@ -171,7 +264,10 @@ def extract_file(filepath):
 
 def scan_directory(dirpath):
     """递归扫描目录下所有支持的文件"""
-    supported = ('.docx', '.pptx', '.pdf', '.txt', '.md', '.doc')
+    supported = (
+        '.docx', '.pptx', '.pdf', '.txt', '.md', '.doc',
+        '.xlsx', '.xlsm', '.xltx', '.xltm', '.xls', '.csv', '.tsv',
+    )
     files = []
     for root, dirs, filenames in os.walk(dirpath):
         dirs[:] = [d for d in dirs if not d.startswith('.')]
