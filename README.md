@@ -29,7 +29,7 @@
 
 | 规则 | 说明 | 严重性 |
 |------|------|--------|
-| 身份偏移逻辑 | 医药代表不得涉及销售、收款、商业谈判 | 高 |
+| 身份偏移逻辑 | 医药代表不得涉及销售、收款、销售任务 | 高 |
 | 处方干预逻辑 | 严禁收集/追踪处方量 | 高 |
 | 利益交换逻辑 | 严禁通过利益手段换取销量 | 高 |
 | 非学术化推广逻辑 | 严禁在非学术场景推广 | 中 |
@@ -40,8 +40,7 @@
 ### Codex
 
 ```bash
-mkdir -p ~/.codex/skills
-cp -R skill/pharma-compliance ~/.codex/skills/
+codex skills install https://github.com/mattzhangli008-sys/pharma-compliance.git
 ```
 
 ### Claude Code
@@ -59,7 +58,7 @@ cp -R skill/pharma-compliance .kiro/skills/
 
 ### 其他 Agent
 
-将整个 `pharma-compliance/` 目录复制到你的 Agent 的 skills/prompts 目录中，保持 `SKILL.md` 和 `references/` 的相对路径关系。
+从 [mattzhangli008-sys/pharma-compliance](https://github.com/mattzhangli008-sys/pharma-compliance) 下载仓库后，将整个 `pharma-compliance/` 目录复制到你的 Agent 的 skills/prompts 目录中，保持 `SKILL.md` 和 `references/` 的相对路径关系。
 
 ## 文件结构
 
